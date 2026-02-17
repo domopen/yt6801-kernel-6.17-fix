@@ -58,7 +58,7 @@ sudo dpkg -i tuxedo-yt6801_1.0.29tux0_all.deb
 
 ```bash
 git clone https://github.com/domopen/yt6801-kernel-6.17-fix.git
-cd yt6801-kernel-fix
+cd yt6801-kernel-6.17-fix
 chmod +x fix-yt6801.sh
 sudo ./fix-yt6801.sh
 ```
