@@ -1,0 +1,50 @@
+--- a/fuxi-gmac-phy.c
++++ b/fuxi-gmac-phy.c
+@@ -430,7 +430,9 @@
+ {
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0))
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6,17,0))
++    struct fxgmac_pdata *pdata = container_of(t, struct fxgmac_pdata, expansion.phy_poll_tm);
++#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0))
+     struct fxgmac_pdata *pdata = from_timer(pdata, t, expansion.phy_poll_tm);
+ #else
+     struct fxgmac_pdata *pdata = (struct fxgmac_pdata*)data;
+@@ -473,14 +475,19 @@
+ int fxgmac_phy_timer_init(struct fxgmac_pdata *pdata)
+ {
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0))
+-    init_timer_key(&pdata->expansion.phy_poll_tm, NULL, 0, "fuxi_phy_link_update_timer", NULL);
+-#else
+-    init_timer_key(&pdata->expansion.phy_poll_tm, 0, "fuxi_phy_link_update_timer", NULL);
+-#endif
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6,17,0))
++    timer_setup(&pdata->expansion.phy_poll_tm, fxgmac_phy_link_poll, 0);
+     pdata->expansion.phy_poll_tm.expires = jiffies + HZ / 2;
+-    pdata->expansion.phy_poll_tm.function = (void *)(fxgmac_phy_link_poll);
+-#if (LINUX_VERSION_CODE < KERNEL_VERSION(4,15,0))
+-    pdata->expansion.phy_poll_tm.data = (unsigned long)pdata;
+-#endif
+     add_timer(&pdata->expansion.phy_poll_tm);
++#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0))
++    init_timer_key(&pdata->expansion.phy_poll_tm, NULL, 0, "fuxi_phy_link_update_timer", NULL);
++    pdata->expansion.phy_poll_tm.expires = jiffies + HZ / 2;
++    pdata->expansion.phy_poll_tm.function = (void *)(fxgmac_phy_link_poll);
++    add_timer(&pdata->expansion.phy_poll_tm);
++#else
++    init_timer_key(&pdata->expansion.phy_poll_tm, 0, "fuxi_phy_link_update_timer", NULL);
++    pdata->expansion.phy_poll_tm.expires = jiffies + HZ / 2;
++    pdata->expansion.phy_poll_tm.function = (void *)(fxgmac_phy_link_poll);
++    pdata->expansion.phy_poll_tm.data = (unsigned long)pdata;
++    add_timer(&pdata->expansion.phy_poll_tm);
++#endif
+     DPRINTK("fxgmac_phy_timer started, %lx\n", jiffies);
+@@ -490,7 +497,11 @@
+ void fxgmac_phy_timer_destroy(struct fxgmac_pdata *pdata)
+ {
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6,17,0))
++    timer_delete_sync(&pdata->expansion.phy_poll_tm);
++#else
+     del_timer_sync(&pdata->expansion.phy_poll_tm);
++#endif
+     DPRINTK("fxgmac_phy_timer removed\n");
+ }
